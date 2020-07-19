@@ -1,5 +1,5 @@
 # Select-implementation-property-drawer
-Unity property drawer to choose implementation in inspector for marked field as SerializeReference.
+Unity property drawer to choose implementation in an inspector for marked field as SerializeReference.
 ## Example
 ### Code
 ```c#
@@ -30,3 +30,6 @@ public class SelectIimplementationDrawerExample : MonoBehaviour
 ```
 ### And in the inspector it will be like that
 ![](https://github.com/medvedya/Select-implementation-property-drawer/blob/description_files/SelectIimplementationDrawer_example.gif?raw=true)
+
+## Installation
+You can install this package via Package manager by link to the current repo https://github.com/medvedya/Select-implementation-property-drawer.git 
