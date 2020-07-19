@@ -5,18 +5,25 @@ Unity property drawer to choose implementation in inspector for marked field as 
 ```c#
 using UnityEngine;
 using System;
+
 public interface IMyInterface { }
+
 [Serializable]
 public class MyImplementInterfaceClass : IMyInterface { public int myImplementInterfaceClass; }
+
 public abstract class MyAbstractClass { public string myAbstractClass; }
+
 [Serializable]
 public class MyInheritedFromAbstractClass : MyAbstractClass { public float myInheritedFromAbstractClass; }
+
 [Serializable]
 public class MyInheritedFromAbstractClassAndInterface : MyAbstractClass, IMyInterface { public bool myInheritedFromAbstractClassAndInterface; }
+
 public class SelectIimplementationDrawerExample : MonoBehaviour
 {
     [SerializeReference, SelectImplementation(typeof(IMyInterface))]
     public IMyInterface interfaceField;
+    
     [SerializeReference, SelectImplementation(typeof(MyAbstractClass))]
     public MyAbstractClass abstractClassField;
 }
