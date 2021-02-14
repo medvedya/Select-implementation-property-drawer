@@ -10,16 +10,54 @@ using UnityEngine.UIElements;
 [CustomPropertyDrawer(typeof(SelectImplementationAttribute))]
 public class SelectImplementationDrawer : PropertyDrawer
 {
-    private List<Type> _implementations;
-    private int _implementationTypeIndex;
-    bool isOpend = false;
+
+    struct PropertyData
+    {
+        public bool isOpen;
+        public int implementationTypeIndex;
+    }
+
+    Dictionary<string, PropertyData> saveData = new Dictionary<string, PropertyData>();
+    List<Type> _implementations = null;
+
     const float menuHeight = 18;
     const float openPadding = 10;
+
+    PropertyData GetProppertyData(SerializedProperty prop)
+    {
+        
+        if (!saveData.ContainsKey(prop.propertyPath))
+        {
+            saveData[prop.propertyPath] = new PropertyData();
+        }
+        return saveData[prop.propertyPath];
+    }
+
+
+    bool IsOpen(SerializedProperty prop) => GetProppertyData(prop).isOpen;
+    void SetAsOpen(SerializedProperty prop) => SetAsOpenCloseState(prop, true);
+    void SetAsClose(SerializedProperty prop) => SetAsOpenCloseState(prop, false);
+    void SetAsOpenCloseState(SerializedProperty prop, bool isOpen)
+    {
+        var data = GetProppertyData(prop);
+        data.isOpen = isOpen;
+        saveData[prop.propertyPath] = data;
+    }
+    int GetImplementationTypeIndex(SerializedProperty prop) => GetProppertyData(prop).implementationTypeIndex;
+    void SetImplementationTypeIndex(SerializedProperty prop, int index)
+    {
+        var data = GetProppertyData(prop);
+        data.implementationTypeIndex = index;
+        saveData[prop.propertyPath] = data;
+    }
+
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
+        
+
         EditorGUI.BeginProperty(position, label, property);
         //Menu 
-        if (isOpend)
+        if (IsOpen(property))
         {
             position.y += openPadding;
             float popupWidth = position.width * 0.75f;
@@ -31,22 +69,24 @@ public class SelectImplementationDrawer : PropertyDrawer
                 }
                 if (GUI.Button(new Rect(position.x + popupWidth + buttonWidth, position.y, buttonWidth, menuHeight), "Set"))
                 {
-                    var item = _implementations[_implementationTypeIndex];
+                    var item = _implementations[GetImplementationTypeIndex(property)];
                     if (item == null)
                     {
                         property.managedReferenceValue = null;
                     }
                     else
                     {
-                        property.managedReferenceValue = Activator.CreateInstance(_implementations[_implementationTypeIndex]);
+                        property.managedReferenceValue = Activator.CreateInstance(_implementations[GetImplementationTypeIndex(property)]);
                     }
-                    _implementationTypeIndex = 0;
-                    isOpend = false;
+                    SetImplementationTypeIndex(property,0);
+                    SetAsClose(property);
                 }
             }
             {
-                _implementationTypeIndex = EditorGUI.Popup(new Rect(position.x, position.y, popupWidth, menuHeight), $"Implementation ({_implementations.Count - 1})",
-                _implementationTypeIndex, _implementations.Select(impl => impl == null ? "null" : impl.FullName.Replace('+', '/')).ToArray());
+                var _implementationTypeIndex = EditorGUI.Popup(new Rect(position.x, position.y, popupWidth, menuHeight), $"Implementation ({_implementations.Count - 1})",
+                GetImplementationTypeIndex(property), _implementations.Select(impl => impl == null ? "null" : impl.FullName.Replace('+', '/')).ToArray());
+                
+                SetImplementationTypeIndex(property, _implementationTypeIndex);
             }
             position.y += menuHeight;
 
@@ -79,7 +119,8 @@ public class SelectImplementationDrawer : PropertyDrawer
             // Open menu button
             { 
                 const float openButtonHeight = 18;
-                isOpend = GUI.Toggle(new Rect(position.x + position.width - openButtonWidth, position.y, openButtonWidth, openButtonHeight), isOpend, "i", "Button");
+                var isOpend = GUI.Toggle(new Rect(position.x + position.width - openButtonWidth, position.y, openButtonWidth, openButtonHeight), IsOpen(property), "i", "Button");
+                SetAsOpenCloseState(property, isOpend);
             }
         }
         EditorGUI.EndProperty();
@@ -90,7 +131,7 @@ public class SelectImplementationDrawer : PropertyDrawer
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
         var height = EditorGUI.GetPropertyHeight(property);
-        if (isOpend)
+        if (IsOpen(property))
         {
             height += menuHeight + openPadding * 2;
         }
