@@ -1,10 +1,8 @@
 {
   "name": "com.medvedya.select_implementation_property_drawer",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "displayName": "Select implementation property drawer",
   "description": "Property drawer to chose implementation in inspector for SerializeReference field. Use SelectImplementation attribute.",
-  "unity": "2019.4",
-  "unityRelease": "1f1",
-  "dependencies": {
-  }
+  "unity": "2020.3",
+  "unityRelease": "42f1"
 }
