@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
-using UnityEditor.UIElements;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 [CustomPropertyDrawer(typeof(SelectImplementationAttribute))]
 public class SelectImplementationDrawer : PropertyDrawer
@@ -35,7 +32,6 @@ public class SelectImplementationDrawer : PropertyDrawer
 
 
     bool IsOpen(SerializedProperty prop) => GetProppertyData(prop).isOpen;
-    void SetAsOpen(SerializedProperty prop) => SetAsOpenCloseState(prop, true);
     void SetAsClose(SerializedProperty prop) => SetAsOpenCloseState(prop, false);
     void SetAsOpenCloseState(SerializedProperty prop, bool isOpen)
     {
@@ -53,21 +49,21 @@ public class SelectImplementationDrawer : PropertyDrawer
 
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        
 
+        var castedAttribure = (attribute as SelectImplementationAttribute);
         EditorGUI.BeginProperty(position, label, property);
         //Menu 
         if (IsOpen(property))
         {
             position.y += openPadding;
-            float popupWidth = position.width * 0.75f;
-            float buttonWidth = (position.width - popupWidth) / 2f;
+            float popupWidth = position.width * (0.75f + 0.125f);
+            float buttonWidth = (position.width - popupWidth);
             {
-                if (_implementations == null || GUI.Button(new Rect(position.x + popupWidth, position.y, buttonWidth, menuHeight), EditorGUIUtility.IconContent("Refresh")))
+                if (_implementations == null)
                 {
-                    _implementations = GetImplementations((attribute as SelectImplementationAttribute).FieldType);
+                    _implementations = GetImplementations(castedAttribure.FieldType);
                 }
-                if (GUI.Button(new Rect(position.x + popupWidth + buttonWidth, position.y, buttonWidth, menuHeight), "Set"))
+                if (GUI.Button(new Rect(position.x + popupWidth, position.y, buttonWidth, menuHeight), "Set"))
                 {
                     var item = _implementations[GetImplementationTypeIndex(property)];
                     if (item == null)
@@ -84,8 +80,7 @@ public class SelectImplementationDrawer : PropertyDrawer
             }
             {
                 var _implementationTypeIndex = EditorGUI.Popup(new Rect(position.x, position.y, popupWidth, menuHeight), $"Implementation ({_implementations.Count - 1})",
-                GetImplementationTypeIndex(property), _implementations.Select(impl => impl == null ? "null" : impl.FullName.Replace('+', '/')).ToArray());
-                
+                GetImplementationTypeIndex(property), _implementations.Select(impl => impl == null ? "null" : GetTypeNameLabel(impl.FullName.Replace('+', '/'))).ToArray());
                 SetImplementationTypeIndex(property, _implementationTypeIndex);
             }
             position.y += menuHeight;
@@ -106,12 +101,13 @@ public class SelectImplementationDrawer : PropertyDrawer
                     var spaceIndex = property.managedReferenceFullTypename.IndexOf(" ") + 1;
                     if (spaceIndex != 0)
                     {
-                        typeName = property.managedReferenceFullTypename.Substring(spaceIndex, property.managedReferenceFullTypename.Length - spaceIndex);
+                        typeName = GetTypeNameLabel(property.managedReferenceFullTypename.Substring(spaceIndex, property.managedReferenceFullTypename.Length - spaceIndex));
                     }
                     else
                     {
-                        typeName = property.managedReferenceFullTypename;
+                        typeName = GetTypeNameLabel(property.managedReferenceFullTypename);
                     }
+                    
                 }
                 EditorGUI.PropertyField(new Rect(position.x, position.y, position.width - openButtonWidth, EditorGUI.GetPropertyHeight(property)), property, new GUIContent($"{property.displayName} ({typeName})"), true);
 
@@ -124,10 +120,29 @@ public class SelectImplementationDrawer : PropertyDrawer
             }
         }
         EditorGUI.EndProperty();
-
+        string GetTypeNameLabel(string type)
+        {
+            if (!castedAttribure.ShowNamespace)
+            {
+                var index = type.LastIndexOf('.');
+                if (index != -1)
+                {
+                    type = type.Substring(index + 1);
+                }
+            }
+            if (!castedAttribure.ShowParentClass)
+            {
+                var index = type.LastIndexOf('/');
+                if (index != -1)
+                {
+                    type = type.Substring(index + 1);
+                }
+            }
+            return type;
+        }
 
     }
-
+    
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
         var height = EditorGUI.GetPropertyHeight(property);
@@ -143,7 +158,12 @@ public class SelectImplementationDrawer : PropertyDrawer
         List<Type> resTypes = new List<Type>();
         resTypes.Add(null);
         var types = AppDomain.CurrentDomain.GetAssemblies().SelectMany(assembly => assembly.GetTypes());
-        resTypes.AddRange(types.Where(p => interfaceType.IsAssignableFrom(p) && !p.IsAbstract && !p.IsSubclassOf(typeof( UnityEngine.Object))));
+        resTypes.AddRange(
+            types.Where(p => interfaceType.IsAssignableFrom(p) 
+            && !p.IsAbstract 
+            && !p.IsSubclassOf(typeof(UnityEngine.Object))
+            && Attribute.GetCustomAttribute(p, typeof(SerializableAttribute)) != null)
+            );
         return resTypes;
     }
 }
